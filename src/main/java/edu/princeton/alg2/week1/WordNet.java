@@ -4,7 +4,9 @@ import edu.princeton.cs.algs4.Bag;
 import edu.princeton.cs.algs4.Digraph;
 import edu.princeton.cs.algs4.In;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author Alexey Novakov
@@ -13,19 +15,9 @@ public class WordNet {
     private static final String RELATION_SEPARATOR = ",";
     private static final String SYNONYM_SEPARATOR = " ";
 
-    private Digraph digraph;
+    private SAP sap;
     private Map<Integer, String> idToSynsets;
     private Map<String, Bag<Integer>> nounToIds;
-
-    private class Synset {
-        private String[] synonyms;
-        private String gloss;
-
-        public Synset(String[] synonyms, String gloss) {
-            this.synonyms = synonyms;
-            this.gloss = gloss;
-        }
-    }
 
     // constructor takes the name of the two input files
     public WordNet(String synsets, String hypernyms) {
@@ -33,7 +25,7 @@ public class WordNet {
         Objects.requireNonNull(hypernyms, "Hypernyms file is not set");
 
         buildSynsetList(synsets);
-        buildHypernymsDigraph(hypernyms, idToSynsets.size());
+        sap = new SAP(buildHypernymsDigraph(hypernyms, idToSynsets.size()));
     }
 
     private void buildSynsetList(String synsetsPath) {
@@ -61,9 +53,9 @@ public class WordNet {
         in.close();
     }
 
-    private void buildHypernymsDigraph(String hypernymsPath, int size) {
+    private Digraph buildHypernymsDigraph(String hypernymsPath, int size) {
         In in = new In(hypernymsPath);
-        digraph = new Digraph(size);
+        Digraph digraph = new Digraph(size);
 
         while (in.hasNextLine()) {
             String[] items = in.readLine().split(RELATION_SEPARATOR);
@@ -74,6 +66,8 @@ public class WordNet {
             }
         }
         in.close();
+
+        return digraph;
     }
 
     // returns all WordNet nouns
@@ -89,18 +83,21 @@ public class WordNet {
 
     // distance between nounA and nounB (defined below)
     public int distance(String nounA, String nounB) {
+        validateNouns(nounA, nounB);
+        return sap.length(nounToIds.get(nounA), nounToIds.get(nounB));
+    }
+
+    private void validateNouns(String nounA, String nounB) {
         if (!isNoun(nounA) || !isNoun(nounB)) {
             throw new IllegalArgumentException("Either nounA or nounB is not a noun");
         }
-
-
-        return 0;
     }
 
     // a synset (second field of synsets.txt) that is the common ancestor of nounA and nounB
     // in a shortest ancestral path (defined below)
     public String sap(String nounA, String nounB) {
-        return null;
+        validateNouns(nounA, nounB);
+        return idToSynsets.get(sap.ancestor(nounToIds.get(nounA), nounToIds.get(nounB)));
     }
 
     // do unit testing of this class
