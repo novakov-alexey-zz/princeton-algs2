@@ -33,4 +33,10 @@ class WordNetTest extends FlatSpec with Matchers with WordNetBase {
       wordNet.distance(Random.nextString(10), Random.nextString(10))
     }
   }
+
+  it should "throws an IllegalArgumentException when the input is not a rooted DAG" in {
+    intercept[IllegalArgumentException] {
+      new WordNet("wordnet/synsets3.txt", "wordnet/hypernyms3InvalidTwoRoots.txt")
+    }
+  }
 }

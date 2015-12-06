@@ -7,6 +7,7 @@ import edu.princeton.cs.algs4.In;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.IntStream;
 
 /**
  * @author Alexey Novakov
@@ -14,6 +15,8 @@ import java.util.Objects;
 public class WordNet {
     private static final String RELATION_SEPARATOR = ",";
     private static final String SYNONYM_SEPARATOR = " ";
+    private static final int SYNSET_ID_POS = 0;
+    private static final int SYNSET_POS = 1;
 
     private SAP sap;
     private Map<Integer, String> idToSynsets;
@@ -36,8 +39,8 @@ public class WordNet {
         while (in.hasNextLine()) {
             String[] items = in.readLine().split(RELATION_SEPARATOR);
 
-            int id = Integer.parseInt(items[0]);
-            String synSet = items[1];
+            int id = Integer.parseInt(items[SYNSET_ID_POS]);
+            String synSet = items[SYNSET_POS];
             idToSynsets.put(id, synSet);
 
             for (String noun : synSet.split(SYNONYM_SEPARATOR)) {
@@ -59,7 +62,7 @@ public class WordNet {
 
         while (in.hasNextLine()) {
             String[] items = in.readLine().split(RELATION_SEPARATOR);
-            int synsetId = Integer.parseInt(items[0]);
+            int synsetId = Integer.parseInt(items[SYNSET_ID_POS]);
 
             for (int i = 1; i < items.length; i++) {
                 digraph.addEdge(synsetId, Integer.parseInt(items[i]));
@@ -67,7 +70,17 @@ public class WordNet {
         }
         in.close();
 
+        validateRootedDag(digraph);
         return digraph;
+    }
+
+    //check that the input is a rooted DAG
+    private void validateRootedDag(Digraph digraph) {
+        int roots = IntStream.range(0, digraph.V()).filter(i -> !digraph.adj(i).iterator().hasNext()).reduce(0, (a, b) -> a + 1);
+
+        if (roots != 1) {
+            throw new IllegalArgumentException();
+        }
     }
 
     // returns all WordNet nouns

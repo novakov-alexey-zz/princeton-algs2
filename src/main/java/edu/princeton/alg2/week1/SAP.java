@@ -5,6 +5,7 @@ import edu.princeton.cs.algs4.Digraph;
 
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.stream.IntStream;
 
 /**
  * @author Alexey Novakov
@@ -15,7 +16,13 @@ public class SAP {
     // constructor takes a digraph (not necessarily a DAG)
     public SAP(Digraph digraph) {
         Objects.requireNonNull(digraph);
-        this.digraph = digraph;
+        this.digraph = copy(digraph);
+    }
+
+    private Digraph copy(Digraph digraph) {
+        Digraph copy = new Digraph(digraph.V());
+        IntStream.range(0, digraph.V()).parallel().forEach(v -> digraph.adj(v).forEach(w -> copy.addEdge(v, w)));
+        return copy;
     }
 
     // length of shortest ancestral path between v and w; -1 if no such path
