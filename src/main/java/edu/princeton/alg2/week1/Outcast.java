@@ -28,9 +28,4 @@ public class Outcast {
         }
         return outcast;
     }
-
-    // see test client below
-    public static void main(String[] args) {
-
-    }
 }

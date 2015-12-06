@@ -27,4 +27,10 @@ class WordNetTest extends FlatSpec with Matchers with WordNetBase {
     import scala.collection.JavaConverters._
     wordNet.nouns.asScala.seq shouldNot be (empty)
   }
+
+  it should "throw IllegalArgumentException if Either nounA or nounB is not a noun)" in {
+    intercept[IllegalArgumentException] {
+      wordNet.distance(Random.nextString(10), Random.nextString(10))
+    }
+  }
 }
