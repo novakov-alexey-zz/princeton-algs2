@@ -7,7 +7,6 @@ import edu.princeton.cs.algs4.In;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 /**
  * @author Alexey Novakov

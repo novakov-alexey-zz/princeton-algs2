@@ -7,10 +7,8 @@ import scala.util.Random
 /**
   * @author Alexey Novakov
   */
-class WordNetTest extends FlatSpec with Matchers {
+class WordNetTest extends FlatSpec with Matchers with WordNetBase {
   behavior of "WordNet"
-
-  val wordNet = new WordNet("wordnet/synsets.txt", "wordnet/hypernyms.txt")
 
   it should "true if the word is a WordNet noun" in {
     wordNet.isNoun("Actifed") should be(true)
