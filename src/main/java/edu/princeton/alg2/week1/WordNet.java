@@ -7,6 +7,7 @@ import edu.princeton.cs.algs4.In;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * @author Alexey Novakov
@@ -24,11 +25,11 @@ public class WordNet {
         Objects.requireNonNull(synsets, "Synset file is not set");
         Objects.requireNonNull(hypernyms, "Hypernyms file is not set");
 
-        buildSynsetList(synsets);
+        buildSynset(synsets);
         sap = new SAP(buildHypernymsDigraph(hypernyms, idToSynsets.size()));
     }
 
-    private void buildSynsetList(String synsetsPath) {
+    private void buildSynset(String synsetsPath) {
         In in = new In(synsetsPath);
         idToSynsets = new HashMap<>();
         nounToIds = new HashMap<>();
@@ -87,12 +88,6 @@ public class WordNet {
         return sap.length(nounToIds.get(nounA), nounToIds.get(nounB));
     }
 
-    private void validateNouns(String nounA, String nounB) {
-        if (!isNoun(nounA) || !isNoun(nounB)) {
-            throw new IllegalArgumentException("Either nounA or nounB is not a noun");
-        }
-    }
-
     // a synset (second field of synsets.txt) that is the common ancestor of nounA and nounB
     // in a shortest ancestral path (defined below)
     public String sap(String nounA, String nounB) {
@@ -100,9 +95,9 @@ public class WordNet {
         return idToSynsets.get(sap.ancestor(nounToIds.get(nounA), nounToIds.get(nounB)));
     }
 
-    // do unit testing of this class
-    public static void main(String[] args) {
-        WordNet wordNet = new WordNet("wordnet/synsets.txt", "wordnet/hypernyms.txt");
-        //wordNet.nouns().forEach(System.out::println);
+    private void validateNouns(String nounA, String nounB) {
+        if (!isNoun(nounA) || !isNoun(nounB)) {
+            throw new IllegalArgumentException("Either nounA or nounB is not a noun");
+        }
     }
 }
