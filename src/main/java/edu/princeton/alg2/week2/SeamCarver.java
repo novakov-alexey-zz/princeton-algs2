@@ -10,6 +10,7 @@ import java.util.function.BiFunction;
  * @author Alexey Novakov
  */
 public class SeamCarver {
+    public static final int DEFAULT_ENERGY = 1_000;
     private Picture picture;
     private Color[][] colors;
     private boolean rotated;
@@ -31,15 +32,19 @@ public class SeamCarver {
     }
 
     private double getEnergy(int i, int j) {
-        BiFunction<Color, Color, Double> diff = (l, r) ->
-                Math.pow(r.getRed() - l.getRed(), 2)
-                        + Math.pow(r.getGreen() - l.getGreen(), 2)
-                        + Math.pow(r.getBlue() - l.getBlue(), 2);
+        if (!isBorder(i, j)) {
+            BiFunction<Color, Color, Double> diff = (l, r) ->
+                    Math.pow(r.getRed() - l.getRed(), 2)
+                            + Math.pow(r.getGreen() - l.getGreen(), 2)
+                            + Math.pow(r.getBlue() - l.getBlue(), 2);
 
-        double xRgb = diff.apply(picture.get(i + 1, j), picture.get(i - 1, j));
-        double yRgb = diff.apply(picture.get(i, j + 1), picture.get(i, j - 1));
+            double xRgb = diff.apply(colors[i + 1][j], colors[i - 1][j]);
+            double yRgb = diff.apply(colors[i][j + 1], colors[i][j - 1]);
 
-        return Math.sqrt(xRgb + yRgb);
+            return Math.sqrt(xRgb + yRgb);
+        } else {
+            return 1_000;
+        }
     }
 
     private boolean isBorder(int i, int j) {
@@ -48,6 +53,8 @@ public class SeamCarver {
 
     // current picture
     public Picture picture() {
+        rotateBackIfNeeded();
+
         Picture picture = new Picture(colors.length, colors[0].length);
         for (int i = 0; i < picture.width(); i++) {
             for (int j = 0; j < picture.height(); j++) {
@@ -70,11 +77,11 @@ public class SeamCarver {
     // energy of pixel at column x and row y
     public double energy(int x, int y) {
         validateIndexInbound(x, y);
-        return !isBorder(x, y) ? getEnergy(x, y) : 1_000;
+        return getEnergy(x, y);
     }
 
     private void validateIndexInbound(int x, int y) {
-        if (x < 0 || x > width() - 1 || y < 0 || y > height() - 1)
+        if (x < 0 || x >= width() || y < 0 || y >= height())
             throw new IndexOutOfBoundsException(String.format("Either x or y is out of bound: w = %d, h = %d", width(), height()));
     }
 
@@ -86,7 +93,27 @@ public class SeamCarver {
 
     // sequence of indices for vertical seam
     public int[] findVerticalSeam() {
-        return null;//TODO
+        rotateBackIfNeeded();
+
+        int[] seam = new int[colors[0].length];
+        int l = 0;
+        int r = colors[0].length;
+
+        for (int i = 1; i < colors.length; i++) {
+            double min = DEFAULT_ENERGY;
+            for (int j = l; j < r; j++) {
+                double energy = getEnergy(i, j);
+                if (energy < min) {
+                    min = energy;
+                    seam[i] = j;
+                }
+            }
+            l = seam[i] > 0 ? seam[i] - 1 : 0;
+            r = seam[i] < colors.length - 1 ? seam[i] + 1 : colors.length;
+        }
+
+        seam[0] = seam[1] > 0 ? seam[1] : 0;
+        return seam;
     }
 
     // remove horizontal seam from current picture
@@ -104,21 +131,43 @@ public class SeamCarver {
 
     private void rotateIfNeeded() {
         if (!rotated) {
-            rotateMatrix(colors);
+            rotateByNinetyToRight(colors);
+            rotated = true;
         }
     }
 
-    private <T> void rotateMatrix(T[][] matrix) {
-        int n = matrix.length;
-        for (int i = 0; i < n / 2; i++) {
-            for (int j = 0; j < Math.ceil(((double) n) / 2.); j++) {
-                T temp = matrix[i][j];
-                matrix[i][j] = matrix[n - 1 - j][i];
-                matrix[n - 1 - j][i] = matrix[n - 1 - i][n - 1 - j];
-                matrix[n - 1 - i][n - 1 - j] = matrix[j][n - 1 - i];
-                matrix[j][n - 1 - i] = temp;
+    private void rotateBackIfNeeded() {
+        if (rotated) {
+            rotateByNinetyToLeft(colors);
+            rotated = false;
+        }
+    }
+
+    private <T> void rotateByNinetyToLeft(T[][] m) {
+        transpose(m);
+        swapRows(m);
+    }
+
+    private <T> void rotateByNinetyToRight(T[][] m) {
+        swapRows(m);
+        transpose(m);
+    }
+
+    private static <T> void transpose(T[][] m) {
+        for (int i = 0; i < m.length; i++) {
+            for (int j = i; j < m[0].length; j++) {
+                T x = m[i][j];
+                m[i][j] = m[j][i];
+                m[j][i] = x;
             }
         }
-        rotated = !rotated;
+    }
+
+    private static <T> void swapRows(T[][] m) {
+        for (int i = 0, k = m.length - 1; i < k; ++i, --k) {
+            T[] x = m[i];
+            m[i] = m[k];
+            m[k] = x;
+        }
     }
 }
