@@ -2,7 +2,7 @@ package edu.princeton.alg2.week2;
 
 import edu.princeton.cs.algs4.Picture;
 
-import java.awt.Color;
+import java.awt.*;
 import java.util.Objects;
 import java.util.function.BiFunction;
 
@@ -48,7 +48,7 @@ public class SeamCarver {
     }
 
     private boolean isBorder(int i, int j) {
-        return i == 0 || j == 0 || i == picture.width() - 1 || j == picture.height() - 1;
+        return i == 0 || j == 0 || i == colors.length - 1 || j == colors[0].length - 1;
     }
 
     // current picture
@@ -87,17 +87,30 @@ public class SeamCarver {
 
     // sequence of indices for horizontal seam
     public int[] findHorizontalSeam() {
-        rotateIfNeeded();
-        return findVerticalSeam();
+        int[] seam = findSeam(false);
+        int[] horizontalSeam = new int[seam.length];
+
+        for (int i = 0; i < seam.length; i++) {
+            horizontalSeam[i] = seam.length - 1 - horizontalSeam[i];
+        }
+        return horizontalSeam;
     }
 
     // sequence of indices for vertical seam
     public int[] findVerticalSeam() {
-        rotateBackIfNeeded();
+        return findSeam(true);
+    }
 
-        int[] seam = new int[colors[0].length];
+    private int[] findSeam(boolean vertical) {
+        if (!vertical)
+            rotateIfNeeded();
+        else
+            rotateBackIfNeeded();
+
+        int[] seam = new int[colors.length];
         int l = 0;
-        int r = colors[0].length;
+        int width = colors[0].length;
+        int r = width;
 
         for (int i = 1; i < colors.length; i++) {
             double min = DEFAULT_ENERGY;
@@ -109,10 +122,10 @@ public class SeamCarver {
                 }
             }
             l = seam[i] > 0 ? seam[i] - 1 : 0;
-            r = seam[i] < colors.length - 1 ? seam[i] + 1 : colors.length;
+            r = seam[i] < width - 1 ? seam[i] + 1 : width;
         }
 
-        seam[0] = seam[1] > 0 ? seam[1] : 0;
+        seam[0] = seam[1] > 0 ? seam[1] - 1 : seam[1];
         return seam;
     }
 
@@ -131,43 +144,42 @@ public class SeamCarver {
 
     private void rotateIfNeeded() {
         if (!rotated) {
-            rotateByNinetyToRight(colors);
+            colors = rotateMatrixRight(colors);
             rotated = true;
         }
     }
 
     private void rotateBackIfNeeded() {
         if (rotated) {
-            rotateByNinetyToLeft(colors);
+            colors = rotateMatrixLeft(colors);
             rotated = false;
         }
     }
 
-    private <T> void rotateByNinetyToLeft(T[][] m) {
-        transpose(m);
-        swapRows(m);
-    }
-
-    private <T> void rotateByNinetyToRight(T[][] m) {
-        swapRows(m);
-        transpose(m);
-    }
-
-    private static <T> void transpose(T[][] m) {
-        for (int i = 0; i < m.length; i++) {
-            for (int j = i; j < m[0].length; j++) {
-                T x = m[i][j];
-                m[i][j] = m[j][i];
-                m[j][i] = x;
+    public Color[][] rotateMatrixRight(Color[][] matrix) {
+    /* W and H are already swapped */
+        int w = matrix.length;
+        int h = matrix[0].length;
+        Color[][] ret = new Color[h][w];
+        for (int i = 0; i < h; ++i) {
+            for (int j = 0; j < w; ++j) {
+                ret[i][j] = matrix[w - j - 1][i];
             }
         }
+        return ret;
     }
 
-    private static <T> void swapRows(T[][] m) {
-        for (int i = 0, k = m.length - 1; i < k; ++i, --k) {
-            T[] x = m[i];
-            m[i] = m[k];
-            m[k] = x;
+
+    public Color[][] rotateMatrixLeft(Color[][] matrix) {
+    /* W and H are already swapped */
+        int w = matrix.length;
+        int h = matrix[0].length;
+        Color[][] ret = new Color[h][w];
+        for (int i = 0; i < h; ++i) {
+            for (int j = 0; j < w; ++j) {
+                ret[i][j] = matrix[j][h - i - 1];
+            }
         }
+        return ret;
     }
 }
