@@ -166,13 +166,15 @@ public class SeamCarver {
     }
 
     private void throwExceptionIfWrongSeamLength(int[] seam, boolean vertical) {
-        if (vertical && seam.length < height()) {
-            throw new IllegalArgumentException(
-                    String.format("wrong length of the seam. Seam length is %d, but picture height is %d", seam.length, height()));
+        int pictureLength = rotated ? colors[0].length : colors.length;
 
-        } else if (!vertical && seam.length < width()) {
+        if (vertical && seam.length < pictureLength) {
             throw new IllegalArgumentException(
-                    String.format("wrong length of the seam. Seam length is %d, but picture width is %d", seam.length, width()));
+                    String.format("wrong length of the seam. Seam length is %d, but picture height is %d", seam.length, pictureLength));
+
+        } else if (!vertical && seam.length < pictureLength) {
+            throw new IllegalArgumentException(
+                    String.format("wrong length of the seam. Seam length is %d, but picture width is %d", seam.length, pictureLength));
         }
     }
 

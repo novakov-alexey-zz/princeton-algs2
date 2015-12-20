@@ -207,4 +207,31 @@ class SeamCarverTest extends FlatSpec with Matchers {
       seamCarver.removeHorizontalSeam(Array(4, 2, 1))
     }
   }
+
+  it should "remove vertical, then horizontal seam" in {
+    //given
+    val seamCarver = fixture.seamCarver
+    //when
+    seamCarver.removeVerticalSeam(seamCarver.findVerticalSeam)
+    seamCarver.removeHorizontalSeam(seamCarver.findHorizontalSeam)
+    //then
+    //TODO: remove seam manually
+    val scaledPicture = new Picture(2, 4)
+    scaledPicture.set(0, 0, new Color(255, 101, 153))
+    scaledPicture.set(1, 0, new Color(255, 101, 255))
+
+    scaledPicture.set(0, 1, new Color(255, 153, 51))
+    scaledPicture.set(1, 1, new Color(255, 153, 255))
+
+    scaledPicture.set(0, 2, new Color(255, 203, 51))
+    scaledPicture.set(1, 2, new Color(255, 205, 255))
+
+    scaledPicture.set(0, 3, new Color(255, 255, 153))
+    scaledPicture.set(1, 3, new Color(255, 255, 255))
+
+    val picture = seamCarver.picture
+    picture.width should be (2)
+    picture.height should be (3)
+    //picture should be(scaledPicture)
+  }
 }
