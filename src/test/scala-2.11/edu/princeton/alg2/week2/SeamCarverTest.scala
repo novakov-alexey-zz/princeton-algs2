@@ -31,6 +31,19 @@ class SeamCarverTest extends FlatSpec with Matchers {
       picture.set(2, 3, new Color(255, 255, 255))
 
       val seamCarver = new SeamCarver(picture)
+
+      val picture3X3 = new Picture(3, 3)
+      picture3X3.set(0, 0, Color.RED)
+      picture3X3.set(0, 1, Color.RED)
+      picture3X3.set(0, 2, Color.RED)
+
+      picture3X3.set(1, 0, Color.RED)
+      picture3X3.set(1, 1, Color.RED)
+      picture3X3.set(1, 2, Color.RED)
+
+      picture3X3.set(2, 0, Color.RED)
+      picture3X3.set(2, 1, Color.RED)
+      picture3X3.set(2, 2, Color.RED)
     }
   }
 
@@ -137,5 +150,61 @@ class SeamCarverTest extends FlatSpec with Matchers {
     scaledPicture.set(2, 2, new Color(255, 255, 255))
 
     picture should be(scaledPicture)
+  }
+
+  it should "throw IllegalArgumentException if removeVerticalSeam/findHorizontalSeam is called when the width/height is <= 1" in {
+    //given
+    val picture = new Picture(1, 1)
+    picture.set(0, 0, Color.RED)
+    val seamCarver = new SeamCarver(picture)
+
+    intercept[IllegalArgumentException] {
+      //when
+      seamCarver.removeVerticalSeam(seamCarver.findVerticalSeam)
+    }
+
+    intercept[IllegalArgumentException] {
+      //when
+      seamCarver.removeHorizontalSeam(seamCarver.findHorizontalSeam)
+    }
+  }
+
+  it should "throw IllegalArgumentException if removing seam has wrong length" in {
+    //given
+    val seamCarver = new SeamCarver(fixture.picture3X3)
+    //when
+    intercept[IllegalArgumentException] {
+      seamCarver.removeVerticalSeam(Array(0))
+    }
+    //when
+    intercept[IllegalArgumentException] {
+      seamCarver.removeHorizontalSeam(Array(0))
+    }
+  }
+
+  it should "throw IllegalArgumentException if current and previous seam entries differ by more than 1" in {
+    //given
+    val seamCarver = new SeamCarver(fixture.picture3X3)
+    //when
+    intercept[IllegalArgumentException] {
+      seamCarver.removeVerticalSeam(Array(0, 2, 1))
+    }
+    //when
+    intercept[IllegalArgumentException] {
+      seamCarver.removeHorizontalSeam(Array(0, 2, 1))
+    }
+  }
+
+  it should "throw IllegalArgumentException if seam entry is outside its prescribed range" in {
+    //given
+    val seamCarver = new SeamCarver(fixture.picture3X3)
+    //when
+    intercept[IllegalArgumentException] {
+      seamCarver.removeVerticalSeam(Array(4, 2, 1))
+    }
+    //when
+    intercept[IllegalArgumentException] {
+      seamCarver.removeHorizontalSeam(Array(4, 2, 1))
+    }
   }
 }

@@ -116,27 +116,45 @@ public class SeamCarver {
             right = seam[i] < width - 1 ? seam[i] + 1 : width;
         }
 
-        seam[0] = seam[1] > 0 ? seam[1] - 1 : seam[1];
+        if (seam.length > 1) {
+            seam[0] = seam[1] > 0 ? seam[1] - 1 : seam[1];
+        }
         return seam;
     }
 
     // remove horizontal seam from current picture
     public void removeHorizontalSeam(int[] seam) {
+        throwExceptionIfPictureTooSmall(height(), "height");
         removeSeam(seam, false);
     }
 
     // remove vertical seam from current picture
     public void removeVerticalSeam(int[] seam) {
+        throwExceptionIfPictureTooSmall(width(), "width");
         removeSeam(seam, true);
+    }
+
+    private void throwExceptionIfPictureTooSmall(int length, String side) {
+        if (length < 2) {
+            throw new IllegalArgumentException(String.format("the %s of the picture is less than or equal to 1", side));
+        }
     }
 
     private void removeSeam(int[] seam, boolean vertical) {
         Objects.requireNonNull(seam);
+        throwExceptionIfWrongSeamLength(seam, vertical);
 
         rotateIfNeeded(vertical);
         Color[][] newColor = new Color[colors.length - 1][colors[0].length];
 
+        int prevSeamEntry = seam[0];
         for (int j = 0; j < colors[0].length; j++) {
+            if (Math.abs(prevSeamEntry - seam[j]) > 1) {
+                throw new IllegalArgumentException("Current and previous seam entries differ by more than 1");
+            }
+            if (seam[j] < 0 || seam[j] >= colors[0].length) {
+                throw new IllegalArgumentException(String.format("Seam entry %d is outside its prescribed range", seam[j]));
+            }
             for (int i = 0, k = 0; i < colors.length; i++) {
                 if (seam[j] != i) {
                     newColor[k++][j] = colors[i][j];
@@ -145,6 +163,17 @@ public class SeamCarver {
         }
 
         colors = newColor;
+    }
+
+    private void throwExceptionIfWrongSeamLength(int[] seam, boolean vertical) {
+        if (vertical && seam.length < height()) {
+            throw new IllegalArgumentException(
+                    String.format("wrong length of the seam. Seam length is %d, but picture height is %d", seam.length, height()));
+
+        } else if (!vertical && seam.length < width()) {
+            throw new IllegalArgumentException(
+                    String.format("wrong length of the seam. Seam length is %d, but picture width is %d", seam.length, width()));
+        }
     }
 
     private void rotateIfNeeded(boolean vertical) {
