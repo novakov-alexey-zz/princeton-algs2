@@ -43,7 +43,7 @@ public class SeamCarver {
 
             return Math.sqrt(xRgb + yRgb);
         } else {
-            return 1_000;
+            return DEFAULT_ENERGY;
         }
     }
 
@@ -55,9 +55,9 @@ public class SeamCarver {
     public Picture picture() {
         rotateBackIfNeeded();
 
-        Picture picture = new Picture(colors.length, colors[0].length);
-        for (int i = 0; i < picture.width(); i++) {
-            for (int j = 0; j < picture.height(); j++) {
+        picture = new Picture(colors.length, colors[0].length);
+        for (int i = 0; i < colors.length; i++) {
+            for (int j = 0; j < colors[0].length; j++) {
                 picture.set(i, j, colors[i][j]);
             }
         }
@@ -87,13 +87,7 @@ public class SeamCarver {
 
     // sequence of indices for horizontal seam
     public int[] findHorizontalSeam() {
-        int[] seam = findSeam(false);
-        int[] horizontalSeam = new int[seam.length];
-
-        for (int i = 0; i < seam.length; i++) {
-            horizontalSeam[i] = seam.length - 1 - horizontalSeam[i];
-        }
-        return horizontalSeam;
+        return findSeam(false);
     }
 
     // sequence of indices for vertical seam
@@ -102,27 +96,28 @@ public class SeamCarver {
     }
 
     private int[] findSeam(boolean vertical) {
-        if (!vertical)
+        if (!vertical) {
             rotateIfNeeded();
-        else
+        } else {
             rotateBackIfNeeded();
+        }
 
-        int[] seam = new int[colors.length];
-        int l = 0;
-        int width = colors[0].length;
-        int r = width;
+        int[] seam = new int[colors[0].length];
+        int left = 0;
+        int width = colors.length;
+        int right = width;
 
-        for (int i = 1; i < colors.length; i++) {
-            double min = DEFAULT_ENERGY;
-            for (int j = l; j < r; j++) {
-                double energy = getEnergy(i, j);
+        for (int i = 1; i < seam.length; i++) {
+            double min = Double.POSITIVE_INFINITY;
+            for (int j = left; j < right; j++) {
+                double energy = getEnergy(j, i);
                 if (energy < min) {
                     min = energy;
                     seam[i] = j;
                 }
             }
-            l = seam[i] > 0 ? seam[i] - 1 : 0;
-            r = seam[i] < width - 1 ? seam[i] + 1 : width;
+            left = seam[i] > 0 ? seam[i] - 1 : 0;
+            right = seam[i] < width - 1 ? seam[i] + 1 : width;
         }
 
         seam[0] = seam[1] > 0 ? seam[1] - 1 : seam[1];
@@ -139,7 +134,23 @@ public class SeamCarver {
     // remove vertical seam from current picture
     public void removeVerticalSeam(int[] seam) {
         Objects.requireNonNull(seam);
-        //TODO
+        Color[][] newColor = new Color[colors.length - 1][colors[0].length];
+        StringBuilder sb = new StringBuilder();
+
+        for (int j = 0; j < colors[0].length; j++) {
+            for (int i = 0, k = 0; i < colors.length; i++) {
+                System.out.print(colors[i][j] + ", ");
+                if (seam[j] != i) {
+                    newColor[k++][j] = colors[i][j];
+                    sb.append("\t").append(colors[i][j]).append(", ");
+                }
+            }
+            System.out.println();
+            sb.append("\n");
+        }
+
+        System.out.println(sb);
+        colors = newColor;
     }
 
     private void rotateIfNeeded() {
@@ -156,7 +167,7 @@ public class SeamCarver {
         }
     }
 
-    public Color[][] rotateMatrixRight(Color[][] matrix) {
+    private Color[][] rotateMatrixRight(Color[][] matrix) {
     /* W and H are already swapped */
         int w = matrix.length;
         int h = matrix[0].length;
@@ -170,7 +181,7 @@ public class SeamCarver {
     }
 
 
-    public Color[][] rotateMatrixLeft(Color[][] matrix) {
+    private Color[][] rotateMatrixLeft(Color[][] matrix) {
     /* W and H are already swapped */
         int w = matrix.length;
         int h = matrix[0].length;

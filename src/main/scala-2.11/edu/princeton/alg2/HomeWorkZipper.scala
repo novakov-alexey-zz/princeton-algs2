@@ -9,10 +9,10 @@ import scala.io.Source
 /**
   * @author Alexey Novakov
   */
-object HomeWorkAssembler extends App {
+object HomeWorkZipper extends App {
 
-  val subPackageName = "week1"
-  val archiveName = "wordnet-testing.zip"
+  val subPackageName = "week2"
+  val archiveName = "seam-carver.zip"
   val srcRoot = "src/main/java/"
 
   Paths.get(archiveName).toFile.delete
