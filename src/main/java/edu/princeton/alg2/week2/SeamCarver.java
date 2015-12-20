@@ -10,7 +10,7 @@ import java.util.function.BiFunction;
  * @author Alexey Novakov
  */
 public class SeamCarver {
-    public static final int DEFAULT_ENERGY = 1_000;
+    private static final int DEFAULT_ENERGY = 1_000;
     private Picture picture;
     private Color[][] colors;
     private boolean rotated;
@@ -38,8 +38,8 @@ public class SeamCarver {
                             + Math.pow(r.getGreen() - l.getGreen(), 2)
                             + Math.pow(r.getBlue() - l.getBlue(), 2);
 
-            double xRgb = diff.apply(colors[i + 1][j], colors[i - 1][j]);
-            double yRgb = diff.apply(colors[i][j + 1], colors[i][j - 1]);
+            double xRgb = diff.apply(colors[i - 1][j], colors[i + 1][j]);
+            double yRgb = diff.apply(colors[i][j - 1], colors[i][j + 1]);
 
             return Math.sqrt(xRgb + yRgb);
         } else {
@@ -66,12 +66,12 @@ public class SeamCarver {
 
     // width of current picture
     public int width() {
-        return picture.width();
+        return colors.length;
     }
 
     // height of current picture
     public int height() {
-        return picture.height();
+        return colors[0].length;
     }
 
     // energy of pixel at column x and row y
@@ -82,7 +82,8 @@ public class SeamCarver {
 
     private void validateIndexInbound(int x, int y) {
         if (x < 0 || x >= width() || y < 0 || y >= height())
-            throw new IndexOutOfBoundsException(String.format("Either x or y is out of bound: w = %d, h = %d", width(), height()));
+            throw new IndexOutOfBoundsException(
+                    String.format("Either x or y is out of bound: w = %d, h = %d", width(), height()));
     }
 
     // sequence of indices for horizontal seam
@@ -113,7 +114,7 @@ public class SeamCarver {
                 }
             }
             left = seam[i] > 0 ? seam[i] - 1 : 0;
-            right = seam[i] < width - 1 ? seam[i] + 1 : width;
+            right = seam[i] < width - 1 ? seam[i] + 2 : width;
         }
 
         if (seam.length > 1) {
@@ -160,21 +161,24 @@ public class SeamCarver {
                     newColor[k++][j] = colors[i][j];
                 }
             }
+            prevSeamEntry = seam[j];
         }
 
         colors = newColor;
     }
 
     private void throwExceptionIfWrongSeamLength(int[] seam, boolean vertical) {
-        int pictureLength = rotated ? colors[0].length : colors.length;
+        int pictureLength = vertical && rotated ? colors.length : colors[0].length;
 
         if (vertical && seam.length < pictureLength) {
             throw new IllegalArgumentException(
-                    String.format("wrong length of the seam. Seam length is %d, but picture height is %d", seam.length, pictureLength));
+                    String.format("wrong length of the seam. Seam length is %d, but picture height is %d",
+                            seam.length, pictureLength));
 
         } else if (!vertical && seam.length < pictureLength) {
             throw new IllegalArgumentException(
-                    String.format("wrong length of the seam. Seam length is %d, but picture width is %d", seam.length, pictureLength));
+                    String.format("wrong length of the seam. Seam length is %d, but picture width is %d",
+                            seam.length, pictureLength));
         }
     }
 

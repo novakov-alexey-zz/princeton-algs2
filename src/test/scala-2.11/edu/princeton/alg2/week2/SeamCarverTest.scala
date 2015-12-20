@@ -213,25 +213,68 @@ class SeamCarverTest extends FlatSpec with Matchers {
     val seamCarver = fixture.seamCarver
     //when
     seamCarver.removeVerticalSeam(seamCarver.findVerticalSeam)
+    val pictureWoVerticalSeam = seamCarver.picture
     seamCarver.removeHorizontalSeam(seamCarver.findHorizontalSeam)
     //then
-    //TODO: remove seam manually
-    val scaledPicture = new Picture(2, 4)
-    scaledPicture.set(0, 0, new Color(255, 101, 153))
-    scaledPicture.set(1, 0, new Color(255, 101, 255))
+    val scaledPicture = new Picture(2, 3)
+    scaledPicture.set(0, 0, new Color(255, 153, 51))
+    scaledPicture.set(1, 0, new Color(255, 153, 255))
 
-    scaledPicture.set(0, 1, new Color(255, 153, 51))
-    scaledPicture.set(1, 1, new Color(255, 153, 255))
+    scaledPicture.set(0, 1, new Color(255, 203, 51))
+    scaledPicture.set(1, 1, new Color(255, 205, 255))
 
-    scaledPicture.set(0, 2, new Color(255, 203, 51))
-    scaledPicture.set(1, 2, new Color(255, 205, 255))
-
-    scaledPicture.set(0, 3, new Color(255, 255, 153))
-    scaledPicture.set(1, 3, new Color(255, 255, 255))
+    scaledPicture.set(0, 2, new Color(255, 255, 153))
+    scaledPicture.set(1, 2, new Color(255, 255, 255))
 
     val picture = seamCarver.picture
-    picture.width should be (2)
-    picture.height should be (3)
-    //picture should be(scaledPicture)
+    picture.width should be(2)
+    picture.height should be(3)
+    picture should be(scaledPicture)
+  }
+
+  it should "return vertical seam in 4x6.png" in {
+    //given
+    val picture = new Picture("seamCarving/4x6.png")
+    val seamCarver = new SeamCarver(picture)
+    //when
+    val verticalSeam = seamCarver.findVerticalSeam
+    //then
+    verticalSeam should be(Array(1, 2, 1, 1, 2, 1))
+
+    println(verticalSeam.foreach(s => print(s"$s ")))
+    printEnergy(seamCarver, verticalSeam)
+  }
+
+  it should "remove vertical seam from 6x5.png" in {
+    //given
+    val seamCarver = new SeamCarver(new Picture("seamCarving/6x5.png"))
+    val verticalSeam = seamCarver.findVerticalSeam
+    //when
+    seamCarver.removeVerticalSeam(verticalSeam)
+    //then
+    seamCarver.width should be(5)
+    seamCarver.height should be(5)
+  }
+
+  it should "remove vertical seam from 10x12.png" in {
+    //given
+    val seamCarver = new SeamCarver(new Picture("seamCarving/10x12.png"))
+    val verticalSeam = seamCarver.findVerticalSeam
+    //when
+    seamCarver.removeVerticalSeam(verticalSeam)
+    //then
+    verticalSeam should be(Array(5, 6, 7, 8, 7, 7, 6, 7, 6, 5, 6, 5))
+    seamCarver.width should be(9)
+    seamCarver.height should be(12)
+  }
+
+  def printEnergy(seamCarver: SeamCarver, verticalSeam: Array[Int]) = {
+    for (i <- 0 until seamCarver.height) {
+      for (j <- 0 until seamCarver.width) {
+        if (verticalSeam(i) == j) print("*")
+        printf("%.9f ", seamCarver.energy(j, i))
+      }
+      println
+    }
   }
 }
