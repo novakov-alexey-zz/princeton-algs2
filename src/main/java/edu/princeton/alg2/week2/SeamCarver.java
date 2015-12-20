@@ -2,7 +2,7 @@ package edu.princeton.alg2.week2;
 
 import edu.princeton.cs.algs4.Picture;
 
-import java.awt.*;
+import java.awt.Color;
 import java.util.Objects;
 import java.util.function.BiFunction;
 
@@ -96,11 +96,7 @@ public class SeamCarver {
     }
 
     private int[] findSeam(boolean vertical) {
-        if (!vertical) {
-            rotateIfNeeded();
-        } else {
-            rotateBackIfNeeded();
-        }
+        rotateIfNeeded(vertical);
 
         int[] seam = new int[colors[0].length];
         int left = 0;
@@ -126,34 +122,40 @@ public class SeamCarver {
 
     // remove horizontal seam from current picture
     public void removeHorizontalSeam(int[] seam) {
-        Objects.requireNonNull(seam);
-        rotateIfNeeded();
-        removeVerticalSeam(seam);
+        removeSeam(seam, false);
     }
 
     // remove vertical seam from current picture
     public void removeVerticalSeam(int[] seam) {
+        removeSeam(seam, true);
+    }
+
+    private void removeSeam(int[] seam, boolean vertical) {
         Objects.requireNonNull(seam);
+
+        rotateIfNeeded(vertical);
         Color[][] newColor = new Color[colors.length - 1][colors[0].length];
-        StringBuilder sb = new StringBuilder();
 
         for (int j = 0; j < colors[0].length; j++) {
             for (int i = 0, k = 0; i < colors.length; i++) {
-                System.out.print(colors[i][j] + ", ");
                 if (seam[j] != i) {
                     newColor[k++][j] = colors[i][j];
-                    sb.append("\t").append(colors[i][j]).append(", ");
                 }
             }
-            System.out.println();
-            sb.append("\n");
         }
 
-        System.out.println(sb);
         colors = newColor;
     }
 
-    private void rotateIfNeeded() {
+    private void rotateIfNeeded(boolean vertical) {
+        if (!vertical) {
+            rotateClockwiseIfNeeded();
+        } else {
+            rotateBackIfNeeded();
+        }
+    }
+
+    private void rotateClockwiseIfNeeded() {
         if (!rotated) {
             colors = rotateMatrixRight(colors);
             rotated = true;
