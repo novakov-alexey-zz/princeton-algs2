@@ -3,231 +3,241 @@ package edu.princeton.alg2.week2;
 import edu.princeton.cs.algs4.Picture;
 
 import java.awt.Color;
-import java.util.Objects;
-import java.util.function.BiFunction;
 
 /**
  * @author Alexey Novakov
  */
 public class SeamCarver {
-    private static final int DEFAULT_ENERGY = 1_000;
-    private Picture picture;
-    private Color[][] colors;
-    private boolean rotated;
+    private int width, height;
+    private int[][] pic;           // int array as intermediate representation of the picture
+    private double[][] energy;        // caching energy for every pixel
+    private boolean isTransposed;  // is pic currently transposed?
 
-    // create a seam carver object based on the given picture
+    /**
+     * constructor
+     */
     public SeamCarver(Picture picture) {
-        this.picture = picture;
-        setColors();
+        isTransposed = false;
+        width = picture.width();
+        height = picture.height();
+        pic = new int[height][width];
+        energy = new double[height][width];
+
+        for (int r = 0; r < height; r++)
+            for (int c = 0; c < width; c++)
+                pic[r][c] = picture.get(c, r).getRGB();
+
+        // energy initialization involves neighbours, hence is done after pic initialization
+        for (int r = 0; r < height; r++)
+            for (int c = 0; c < width; c++)
+                energy[r][c] = energy(c, r);
     }
 
-    private void setColors() {
-        colors = new Color[picture.width()][picture.height()];
-
-        for (int i = 0; i < picture.width(); i++) {
-            for (int j = 0; j < picture.height(); j++) {
-                colors[i][j] = picture.get(i, j);
-            }
-        }
-    }
-
-    private double getEnergy(int i, int j) {
-        if (!isBorder(i, j)) {
-            BiFunction<Color, Color, Double> diff = (l, r) ->
-                    Math.pow(r.getRed() - l.getRed(), 2)
-                            + Math.pow(r.getGreen() - l.getGreen(), 2)
-                            + Math.pow(r.getBlue() - l.getBlue(), 2);
-
-            double xRgb = diff.apply(colors[i - 1][j], colors[i + 1][j]);
-            double yRgb = diff.apply(colors[i][j - 1], colors[i][j + 1]);
-
-            return Math.sqrt(xRgb + yRgb);
-        } else {
-            return DEFAULT_ENERGY;
-        }
-    }
-
-    private boolean isBorder(int i, int j) {
-        return i == 0 || j == 0 || i == colors.length - 1 || j == colors[0].length - 1;
-    }
-
-    // current picture
+    /**
+     * current picture
+     */
     public Picture picture() {
-        rotateBackIfNeeded();
+        Picture seamed = new Picture(width, height);
+        if (isTransposed) transpose(height, width);
 
-        picture = new Picture(colors.length, colors[0].length);
-        for (int i = 0; i < colors.length; i++) {
-            for (int j = 0; j < colors[0].length; j++) {
-                picture.set(i, j, colors[i][j]);
-            }
-        }
-        return picture;
+        // transfer back to picture
+        for (int c = 0; c < width; c++)
+            for (int r = 0; r < height; r++)
+                seamed.set(c, r, new Color(pic[r][c]));
+        return seamed;
     }
 
-    // width of current picture
+    /**
+     * width of the current picture
+     */
     public int width() {
-        return colors.length;
+        return width;
     }
 
-    // height of current picture
+    /**
+     * height of the current picture
+     */
     public int height() {
-        return colors[0].length;
+        return height;
     }
 
-    // energy of pixel at column x and row y
+
+    /**
+     * energy of pixel at column x and row y in the current picture
+     *
+     * @param x column number in the final picture
+     * @param y row number in the final picture
+     */
     public double energy(int x, int y) {
-        validateIndexInbound(x, y);
-        return getEnergy(x, y);
+        if (isTransposed) transpose(height, width);
+        return picEnergy(x, y, height, width);
     }
 
-    private void validateIndexInbound(int x, int y) {
-        if (x < 0 || x >= width() || y < 0 || y >= height())
-            throw new IndexOutOfBoundsException(
-                    String.format("Either x or y is out of bound: w = %d, h = %d", width(), height()));
+    // helper for compute energy
+    private double deltaSquared(int x, int y) {
+        int r = ((x >> 16) & 0x0ff) - ((y >> 16) & 0x0ff);
+        int g = ((x >> 8) & 0x0ff) - ((y >> 8) & 0x0ff);
+        int b = (x & 0x0ff) - (y & 0x0ff);
+        return r * r + g * g + b * b;
     }
 
-    // sequence of indices for horizontal seam
-    public int[] findHorizontalSeam() {
-        return findSeam(false);
+    // computes energy for intermediate pic with height h and width w
+    private double picEnergy(int x, int y, int h, int w) {
+        if (x < 0 || x >= w || y < 0 || y >= h) throw new IndexOutOfBoundsException();
+        if (x == 0 || x == w - 1 || y == 0 || y == h - 1) return 1_000;
+        return Math.sqrt(deltaSquared(pic[y - 1][x], pic[y + 1][x]) + deltaSquared(pic[y][x - 1], pic[y][x + 1]));
     }
 
-    // sequence of indices for vertical seam
+    /**
+     * sequence of indices for vertical seam in current picture
+     */
     public int[] findVerticalSeam() {
-        return findSeam(true);
+        if (isTransposed) transpose(height, width);  // transpose back if pic is transposed
+        return findSeam(height, width);
     }
 
-    private int[] findSeam(boolean vertical) {
-        rotateIfNeeded(vertical);
+    /**
+     * sequence of indices for horizontal seam in current picture
+     */
+    public int[] findHorizontalSeam() {
+        if (!isTransposed) transpose(width, height); // transpose pic if not already transposed
+        return findSeam(width, height);
+    }
 
-        int[] seam = new int[colors[0].length];
-        int left = 0;
-        int width = colors.length;
-        int right = width;
+    // helper for find seam
+    private int[] findSeam(int h, int w) {
+        if (w == 1) return new int[h];
 
-        for (int i = 1; i < seam.length; i++) {
-            double min = Double.POSITIVE_INFINITY;
-            for (int j = left; j < right; j++) {
-                double energy = getEnergy(j, i);
-                if (energy < min) {
-                    min = energy;
-                    seam[i] = j;
-                }
+        double[] lastEnergyTo = new double[w];
+        double[] currentEnergyTo = new double[w];
+        int[][] edgeTo = new int[h][w];
+
+        System.arraycopy(energy[0], 0, lastEnergyTo, 0, w);
+
+        for (int r = 1; r < h; r++) {
+            // edge case when column number is 0
+            if (lastEnergyTo[0] <= lastEnergyTo[1]) {
+                currentEnergyTo[0] = lastEnergyTo[0] + energy[r][0];
+                edgeTo[r][0] = 0;
+            } else {
+                currentEnergyTo[0] = lastEnergyTo[1] + energy[r][0];
+                edgeTo[r][0] = 1;
             }
-            left = seam[i] > 0 ? seam[i] - 1 : 0;
-            right = seam[i] < width - 1 ? seam[i] + 2 : width;
+            // when column number is between 0 and w - 1
+            for (int c = 1; c < w - 1; c++) {
+                currentEnergyTo[c] = lastEnergyTo[c - 1];
+                edgeTo[r][c] = c - 1;
+                if (lastEnergyTo[c] < currentEnergyTo[c]) {
+                    currentEnergyTo[c] = lastEnergyTo[c];
+                    edgeTo[r][c] = c;
+                }
+                if (lastEnergyTo[c + 1] < currentEnergyTo[c]) {
+                    currentEnergyTo[c] = lastEnergyTo[c + 1];
+                    edgeTo[r][c] = c + 1;
+                }
+                currentEnergyTo[c] += energy[r][c];
+            }
+            // edge case when column number is w - 1
+            if (lastEnergyTo[w - 2] <= lastEnergyTo[w - 1]) {
+                currentEnergyTo[w - 1] = lastEnergyTo[w - 2] + energy[r][w - 1];
+                edgeTo[r][w - 1] = w - 2;
+            } else {
+                currentEnergyTo[w - 1] = lastEnergyTo[w - 1] + energy[r][w - 1];
+                edgeTo[r][w - 1] = w - 1;
+            }
+
+            // swap last and current
+            double[] swap;
+            swap = lastEnergyTo;
+            lastEnergyTo = currentEnergyTo;
+            currentEnergyTo = swap;
         }
 
-        if (seam.length > 1) {
-            seam[0] = seam[1] > 0 ? seam[1] - 1 : seam[1];
+        // because of swap, lastEnergyTo records the total energy to reach bottom
+        double minEnergyTo = lastEnergyTo[0];
+        int minCol = 0;
+        for (int c = 1; c < w; c++) {
+            if (lastEnergyTo[c] < minEnergyTo) {
+                minEnergyTo = lastEnergyTo[c];
+                minCol = c;
+            }
+        }
+
+        // trace back the seam
+        int[] seam = new int[h];
+        seam[h - 1] = minCol;
+        for (int r = h - 1; r > 0; r--) {
+            minCol = edgeTo[r][minCol];
+            seam[r - 1] = minCol;
         }
         return seam;
     }
 
-    // remove horizontal seam from current picture
-    public void removeHorizontalSeam(int[] seam) {
-        throwExceptionIfPictureTooSmall(height(), "height");
-        removeSeam(seam, false);
-    }
-
-    // remove vertical seam from current picture
-    public void removeVerticalSeam(int[] seam) {
-        throwExceptionIfPictureTooSmall(width(), "width");
-        removeSeam(seam, true);
-    }
-
-    private void throwExceptionIfPictureTooSmall(int length, String side) {
-        if (length < 2) {
-            throw new IllegalArgumentException(String.format("the %s of the picture is less than or equal to 1", side));
-        }
-    }
-
-    private void removeSeam(int[] seam, boolean vertical) {
-        Objects.requireNonNull(seam);
-        throwExceptionIfWrongSeamLength(seam, vertical);
-
-        rotateIfNeeded(vertical);
-        Color[][] newColor = new Color[colors.length - 1][colors[0].length];
-
-        int prevSeamEntry = seam[0];
-        for (int j = 0; j < colors[0].length; j++) {
-            if (Math.abs(prevSeamEntry - seam[j]) > 1) {
-                throw new IllegalArgumentException("Current and previous seam entries differ by more than 1");
-            }
-            if (seam[j] < 0 || seam[j] >= colors[0].length) {
-                throw new IllegalArgumentException(String.format("Seam entry %d is outside its prescribed range", seam[j]));
-            }
-            for (int i = 0, k = 0; i < colors.length; i++) {
-                if (seam[j] != i) {
-                    newColor[k++][j] = colors[i][j];
-                }
-            }
-            prevSeamEntry = seam[j];
-        }
-
-        colors = newColor;
-    }
-
-    private void throwExceptionIfWrongSeamLength(int[] seam, boolean vertical) {
-        int pictureLength = vertical && rotated ? colors.length : colors[0].length;
-
-        if (vertical && seam.length < pictureLength) {
-            throw new IllegalArgumentException(
-                    String.format("wrong length of the seam. Seam length is %d, but picture height is %d",
-                            seam.length, pictureLength));
-
-        } else if (!vertical && seam.length < pictureLength) {
-            throw new IllegalArgumentException(
-                    String.format("wrong length of the seam. Seam length is %d, but picture width is %d",
-                            seam.length, pictureLength));
-        }
-    }
-
-    private void rotateIfNeeded(boolean vertical) {
-        if (!vertical) {
-            rotateClockwiseIfNeeded();
-        } else {
-            rotateBackIfNeeded();
-        }
-    }
-
-    private void rotateClockwiseIfNeeded() {
-        if (!rotated) {
-            colors = rotateMatrixRight(colors);
-            rotated = true;
-        }
-    }
-
-    private void rotateBackIfNeeded() {
-        if (rotated) {
-            colors = rotateMatrixLeft(colors);
-            rotated = false;
-        }
-    }
-
-    private Color[][] rotateMatrixRight(Color[][] matrix) {
-    /* W and H are already swapped */
-        int w = matrix.length;
-        int h = matrix[0].length;
-        Color[][] ret = new Color[h][w];
-        for (int i = 0; i < h; ++i) {
-            for (int j = 0; j < w; ++j) {
-                ret[i][j] = matrix[w - j - 1][i];
+    // helper for horizontal seam
+    private void transpose(int h, int w) {
+        int[][] transposedPic = new int[h][w];
+        double[][] transposedEnergy = new double[h][w];
+        for (int r = 0; r < h; r++) {
+            for (int c = 0; c < w; c++) {
+                transposedPic[r][c] = pic[c][r];
+                transposedEnergy[r][c] = energy[c][r];
             }
         }
-        return ret;
+        pic = transposedPic;
+        energy = transposedEnergy;
+        isTransposed = !isTransposed;
     }
 
+    /**
+     * remove vertical seam from current picture
+     *
+     * @param a vertical seam array
+     */
+    public void removeVerticalSeam(int[] a) {
+        if (isTransposed) transpose(height, width);
+        removeSeam(a, height, width);
+        width--;
+    }
 
-    private Color[][] rotateMatrixLeft(Color[][] matrix) {
-    /* W and H are already swapped */
-        int w = matrix.length;
-        int h = matrix[0].length;
-        Color[][] ret = new Color[h][w];
-        for (int i = 0; i < h; ++i) {
-            for (int j = 0; j < w; ++j) {
-                ret[i][j] = matrix[j][h - i - 1];
+    /**
+     * remove horizontal seam from current picture
+     *
+     * @param a horizontal seam array
+     */
+    public void removeHorizontalSeam(int[] a) {
+        if (!isTransposed) transpose(width, height);
+        removeSeam(a, width, height);
+        height--;
+    }
+
+    // helper for remove seam
+    // suppose the picture is not transposed
+    private void removeSeam(int[] a, int h, int w) {
+        handleRemoveSeamExceptions(a, h, w);
+        for (int r = 0; r < h; r++) {
+            if (a[r] < w - 1) {
+                System.arraycopy(pic[r], a[r] + 1, pic[r], a[r], w - a[r] - 1);
+                System.arraycopy(energy[r], a[r] + 1, energy[r], a[r], w - a[r] - 1);
             }
         }
-        return ret;
+        // only the energy of the seam element and its left element changes
+        for (int r = 1; r < h - 1; r++) {
+            int x = a[r];
+            if (x > 0) energy[r][x - 1] = (int) picEnergy(x - 1, r, h, w - 1);
+            if (x < w - 1) energy[r][x] = (int) picEnergy(x, r, h, w - 1);
+        }
+    }
+
+    // helper for remove seam
+    private void handleRemoveSeamExceptions(int a[], int h, int w) {
+        if (width <= 1 && !isTransposed || height <= 1 && isTransposed) throw new IllegalArgumentException();
+        if (a.length != h) throw new IllegalArgumentException();
+
+        int prevSeamEntry = a[0];
+        for (int x : a) {
+            if (x < 0 || x >= w) throw new IllegalArgumentException();
+            if (Math.abs(prevSeamEntry - x) > 1) throw new IllegalArgumentException();
+            prevSeamEntry = x;
+        }
     }
 }
