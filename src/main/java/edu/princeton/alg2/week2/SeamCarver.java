@@ -3,15 +3,17 @@ package edu.princeton.alg2.week2;
 import edu.princeton.cs.algs4.Picture;
 
 import java.awt.Color;
+import java.util.stream.IntStream;
 
 /**
  * @author Alexey Novakov
  */
 public class SeamCarver {
+    public static final int DEFAULT_ENERGY = 1_000;
     private int width, height;
-    private int[][] pic;           // int array as intermediate representation of the picture
+    private int[][] color;           // int array as intermediate representation of the picture
     private double[][] energy;        // caching energy for every pixel
-    private boolean isTransposed;  // is pic currently transposed?
+    private boolean isTransposed;  // is color currently transposed?
 
     /**
      * constructor
@@ -20,17 +22,17 @@ public class SeamCarver {
         isTransposed = false;
         width = picture.width();
         height = picture.height();
-        pic = new int[height][width];
+        color = new int[height][width];
         energy = new double[height][width];
 
-        for (int r = 0; r < height; r++)
-            for (int c = 0; c < width; c++)
-                pic[r][c] = picture.get(c, r).getRGB();
+        IntStream.range(0, height)
+                .forEach(r -> IntStream.range(0, width)
+                        .forEach(c -> color[r][c] = picture.get(c, r).getRGB()));
 
-        // energy initialization involves neighbours, hence is done after pic initialization
-        for (int r = 0; r < height; r++)
-            for (int c = 0; c < width; c++)
-                energy[r][c] = energy(c, r);
+        // energy initialization involves neighbours, hence is done after color initialization
+        IntStream.range(0, height)
+                .forEach(r -> IntStream.range(0, width)
+                        .forEach(c -> energy[r][c] = energy(c, r)));
     }
 
     /**
@@ -43,7 +45,7 @@ public class SeamCarver {
         // transfer back to picture
         for (int c = 0; c < width; c++)
             for (int r = 0; r < height; r++)
-                seamed.set(c, r, new Color(pic[r][c]));
+                seamed.set(c, r, new Color(color[r][c]));
         return seamed;
     }
 
@@ -70,7 +72,7 @@ public class SeamCarver {
      */
     public double energy(int x, int y) {
         if (isTransposed) transpose(height, width);
-        return picEnergy(x, y, height, width);
+        return getEnergy(x, y, height, width);
     }
 
     // helper for compute energy
@@ -81,18 +83,18 @@ public class SeamCarver {
         return r * r + g * g + b * b;
     }
 
-    // computes energy for intermediate pic with height h and width w
-    private double picEnergy(int x, int y, int h, int w) {
+    // computes energy for intermediate color with height h and width w
+    private double getEnergy(int x, int y, int h, int w) {
         if (x < 0 || x >= w || y < 0 || y >= h) throw new IndexOutOfBoundsException();
-        if (x == 0 || x == w - 1 || y == 0 || y == h - 1) return 1_000;
-        return Math.sqrt(deltaSquared(pic[y - 1][x], pic[y + 1][x]) + deltaSquared(pic[y][x - 1], pic[y][x + 1]));
+        if (x == 0 || x == w - 1 || y == 0 || y == h - 1) return DEFAULT_ENERGY;
+        return Math.sqrt(deltaSquared(color[y - 1][x], color[y + 1][x]) + deltaSquared(color[y][x - 1], color[y][x + 1]));
     }
 
     /**
      * sequence of indices for vertical seam in current picture
      */
     public int[] findVerticalSeam() {
-        if (isTransposed) transpose(height, width);  // transpose back if pic is transposed
+        if (isTransposed) transpose(height, width);  // transpose back if color is transposed
         return findSeam(height, width);
     }
 
@@ -100,11 +102,10 @@ public class SeamCarver {
      * sequence of indices for horizontal seam in current picture
      */
     public int[] findHorizontalSeam() {
-        if (!isTransposed) transpose(width, height); // transpose pic if not already transposed
+        if (!isTransposed) transpose(width, height); // transpose color if not already transposed
         return findSeam(width, height);
     }
 
-    // helper for find seam
     private int[] findSeam(int h, int w) {
         if (w == 1) return new int[h];
 
@@ -147,8 +148,7 @@ public class SeamCarver {
             }
 
             // swap last and current
-            double[] swap;
-            swap = lastEnergyTo;
+            double[] swap = lastEnergyTo;
             lastEnergyTo = currentEnergyTo;
             currentEnergyTo = swap;
         }
@@ -175,15 +175,15 @@ public class SeamCarver {
 
     // helper for horizontal seam
     private void transpose(int h, int w) {
-        int[][] transposedPic = new int[h][w];
+        int[][] transposedColor = new int[h][w];
         double[][] transposedEnergy = new double[h][w];
         for (int r = 0; r < h; r++) {
             for (int c = 0; c < w; c++) {
-                transposedPic[r][c] = pic[c][r];
+                transposedColor[r][c] = color[c][r];
                 transposedEnergy[r][c] = energy[c][r];
             }
         }
-        pic = transposedPic;
+        color = transposedColor;
         energy = transposedEnergy;
         isTransposed = !isTransposed;
     }
@@ -216,15 +216,15 @@ public class SeamCarver {
         handleRemoveSeamExceptions(a, h, w);
         for (int r = 0; r < h; r++) {
             if (a[r] < w - 1) {
-                System.arraycopy(pic[r], a[r] + 1, pic[r], a[r], w - a[r] - 1);
+                System.arraycopy(color[r], a[r] + 1, color[r], a[r], w - a[r] - 1);
                 System.arraycopy(energy[r], a[r] + 1, energy[r], a[r], w - a[r] - 1);
             }
         }
         // only the energy of the seam element and its left element changes
         for (int r = 1; r < h - 1; r++) {
             int x = a[r];
-            if (x > 0) energy[r][x - 1] = (int) picEnergy(x - 1, r, h, w - 1);
-            if (x < w - 1) energy[r][x] = (int) picEnergy(x, r, h, w - 1);
+            if (x > 0) energy[r][x - 1] = (int) getEnergy(x - 1, r, h, w - 1);
+            if (x < w - 1) energy[r][x] = (int) getEnergy(x, r, h, w - 1);
         }
     }
 

@@ -213,7 +213,6 @@ class SeamCarverTest extends FlatSpec with Matchers {
     val seamCarver = fixture.seamCarver
     //when
     seamCarver.removeVerticalSeam(seamCarver.findVerticalSeam)
-    val pictureWoVerticalSeam = seamCarver.picture
     seamCarver.removeHorizontalSeam(seamCarver.findHorizontalSeam)
     //then
     val scaledPicture = new Picture(2, 3)
@@ -314,11 +313,11 @@ class SeamCarverTest extends FlatSpec with Matchers {
     }
   }
 
-  def picture(name: String): Picture = {
+  def picture(name: String) = {
     new Picture(s"seamCarving/$name.png")
   }
 
-  def printSeam(verticalSeam: Array[Int]): Unit = {
+  def printSeam(verticalSeam: Array[Int]) = {
     println(verticalSeam.foreach(s => print(s"$s ")))
   }
 }
