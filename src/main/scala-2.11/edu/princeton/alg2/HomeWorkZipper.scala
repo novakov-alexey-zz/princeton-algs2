@@ -11,8 +11,8 @@ import scala.io.Source
   */
 object HomeWorkZipper extends App {
 
-  val subPackageName = "week2"
-  val archiveName = "seamCarving.zip"
+  val subPackageName = "week3"
+  val archiveName = "baseball.zip"
   val srcRoot = "src/main/java/"
 
   Paths.get(archiveName).toFile.delete
