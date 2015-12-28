@@ -1,6 +1,5 @@
 package edu.princeton.alg2.week3
 
-import edu.princeton.cs.algs4.StdOut
 import org.scalatest.{FlatSpec, Matchers}
 
 import scala.collection.JavaConversions._
@@ -14,7 +13,7 @@ class BaseballEliminationTest extends FlatSpec with Matchers {
   def fixture = {
     new {
       val fileName = "teams4.txt"
-      val division = new BaseballElimination(s"baseball/$fileName")
+      val division = new BaseballElimination(path(fileName))
     }
   }
 
@@ -43,15 +42,21 @@ class BaseballEliminationTest extends FlatSpec with Matchers {
     fixture.division.certificateOfElimination("Montreal").toSet shouldBe Set("Atlanta")
   }
 
+  it should "print eliminated teams" in {
+    printEliminatedTeams(path("teams4.txt"))
+  }
+
   def printEliminatedTeams(fileName: String) {
-    val division: BaseballElimination = new BaseballElimination(fileName)
+    val division = new BaseballElimination(fileName)
 
     division.teams.foreach {
       case t if division.isEliminated(t) =>
-        StdOut.print(s"$t is eliminated by the subset R = { ")
-        division.certificateOfElimination(t).foreach(et => StdOut.print(s"$et "))
-        StdOut.println("}")
-      case t => StdOut.println(s"$t is not eliminated")
+        print(s"$t is eliminated by the subset R = { ")
+        division.certificateOfElimination(t).foreach(et => print(s"$et "))
+        println("}")
+      case t => println(s"$t is not eliminated")
     }
   }
+
+  def path(file: String) = s"baseball/$file"
 }
