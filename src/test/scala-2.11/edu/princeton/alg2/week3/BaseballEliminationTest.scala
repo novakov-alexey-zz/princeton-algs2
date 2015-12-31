@@ -38,16 +38,29 @@ class BaseballEliminationTest extends FlatSpec with Matchers {
     fixture.division.isEliminated("Montreal") shouldBe true
   }
 
-  it should "eliminate Montreal and Philadelphia for teams4.txt" in {
+  it should "eliminate Montreal and Philadelphia in teams4.txt" in {
     //given-when
     val division = fixture.division
     //then
     printEliminatedTeams(division)
     division.isEliminated("Montreal") shouldBe true
-    division.certificateOfElimination("Montreal").toSet shouldBe Set("Atlanta")
+    division.certificateOfElimination("Montreal").toSet shouldBe Set("Atlanta", "New_York", "Philadelphia")
 
     division.isEliminated("Philadelphia") shouldBe true
     division.certificateOfElimination("Philadelphia").toSet shouldBe Set("Atlanta", "New_York")
+  }
+
+  it should "eliminate Detroit in teams5.txt" in {
+    //given-when
+    val division = new BaseballElimination(path("teams5.txt"))
+    //then
+    printEliminatedTeams(division)
+    division.isEliminated("Detroit") shouldBe true
+    //then
+    val otherTeams = Set("New_York", "Baltimore", "Boston", "Toronto")
+    division.certificateOfElimination("Detroit").toSet shouldBe otherTeams
+
+    otherTeams.foreach(t => division.isEliminated(t) shouldBe false)
   }
 
   it should "trow exception when team is not from input file" in {
@@ -71,6 +84,19 @@ class BaseballEliminationTest extends FlatSpec with Matchers {
       division.remaining("unknown team")
     }
   }
+
+  //TODO: add tests for other files. There is an issue with team list more than 24
+  /*
+    teams4a.txt: Ghaddafi.
+    teams5.txt: Detroit.
+    teams7.txt: Ireland.
+    teams24.txt: Team13.
+    teams32.txt: Team25, Team29.
+    teams36.txt: Team21.
+    teams42.txt: Team6, Team15, Team25.
+    teams48.txt: Team6, Team23, Team47.
+    teams54.txt: Team3, Team29, Team37, Team50.
+   */
 
   def printEliminatedTeams(division: BaseballElimination) {
     division.teams.foreach {

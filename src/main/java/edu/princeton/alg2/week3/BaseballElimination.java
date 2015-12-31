@@ -57,7 +57,7 @@ public class BaseballElimination {
         int t = vertices - 1;
 
         for (Team team : teams.values()) {
-            if (!team.eliminationCertificate.isEmpty()) continue;
+//            if (!team.eliminationCertificate.isEmpty()) continue;
             FlowNetwork flow = new FlowNetwork(vertices);
             int game = 1;
             boolean[] edgeToSink = new boolean[numberOfTeams()];
@@ -106,15 +106,15 @@ public class BaseballElimination {
         for (Team team : teams.values()) {
             List<String> certificate = new LinkedList<>();
 
-            boolean eliminated = teams.keySet().stream()
+            teams.keySet().stream()
                     .filter(aTeam -> !aTeam.equals(team.name))
-                    .peek(anotherTeam -> {
+                    .forEach(anotherTeam -> {
                         if (teams.get(anotherTeam).w > team.w + team.remainingInDivision)
                             certificate.add(anotherTeam);
-                    })
-                    .anyMatch(anotherTeam -> teams.get(anotherTeam).w > team.w + team.remainingInDivision);
+                    });
 
-            if (eliminated)
+
+            if (!certificate.isEmpty())
                 team.eliminationCertificate.addAll(certificate);
         }
     }
@@ -182,7 +182,7 @@ public class BaseballElimination {
     }
 
     private static class Team {
-        public String name;
+        private String name;
         private int id;
         private int w;
         private int l;
