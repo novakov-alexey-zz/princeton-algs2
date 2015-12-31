@@ -106,15 +106,15 @@ public class BaseballElimination {
         for (Team team : teams.values()) {
             List<String> certificate = new LinkedList<>();
 
-            boolean canCompete = teams.keySet().stream()
+            boolean eliminated = teams.keySet().stream()
                     .filter(aTeam -> !aTeam.equals(team.name))
                     .peek(anotherTeam -> {
                         if (teams.get(anotherTeam).w > team.w + team.remainingInDivision)
                             certificate.add(anotherTeam);
                     })
-                    .anyMatch(anotherTeam -> teams.get(anotherTeam).w <= team.w + team.remainingInDivision);
+                    .anyMatch(anotherTeam -> teams.get(anotherTeam).w > team.w + team.remainingInDivision);
 
-            if (!canCompete)
+            if (eliminated)
                 team.eliminationCertificate.addAll(certificate);
         }
     }
@@ -141,31 +141,43 @@ public class BaseballElimination {
 
     // number of wins for given team
     public int wins(String team) {
+        validateTeam(team);
         return teams.get(team).w;
+    }
+
+    private void validateTeam(String team) {
+        if (!teams.containsKey(team))
+            throw new IllegalArgumentException("Team does not exist in the input file");
     }
 
     // number of losses for given team
     public int losses(String team) {
+        validateTeam(team);
         return teams.get(team).l;
     }
 
     // number of remaining games for given team
     public int remaining(String team) {
+        validateTeam(team);
         return teams.get(team).r;
     }
 
     // number of remaining games between team1 and team2
     public int against(String team1, String team2) {
+        validateTeam(team1);
+        validateTeam(team2);
         return teams.get(team1).g[teams.get(team2).id];
     }
 
     // is given team eliminated?
     public boolean isEliminated(String team) {
+        validateTeam(team);
         return teams.get(team).eliminationCertificate.size() > 0;
     }
 
     // subset R of teams that eliminates given team; null if not eliminated
     public Iterable<String> certificateOfElimination(String team) {
+        validateTeam(team);
         return teams.get(team).eliminationCertificate;
     }
 

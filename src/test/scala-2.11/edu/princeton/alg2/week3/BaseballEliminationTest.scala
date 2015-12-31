@@ -38,17 +38,41 @@ class BaseballEliminationTest extends FlatSpec with Matchers {
     fixture.division.isEliminated("Montreal") shouldBe true
   }
 
-  it should "return certificate of elimination" in {
-    fixture.division.certificateOfElimination("Montreal").toSet shouldBe Set("Atlanta")
+  it should "eliminate Montreal and Philadelphia for teams4.txt" in {
+    //given-when
+    val division = fixture.division
+    //then
+    printEliminatedTeams(division)
+    division.isEliminated("Montreal") shouldBe true
+    division.certificateOfElimination("Montreal").toSet shouldBe Set("Atlanta")
+
+    division.isEliminated("Philadelphia") shouldBe true
+    division.certificateOfElimination("Philadelphia").toSet shouldBe Set("Atlanta", "New_York")
   }
 
-  it should "print eliminated teams" in {
-    printEliminatedTeams(path("teams4.txt"))
+  it should "trow exception when team is not from input file" in {
+    val division = fixture.division
+    intercept[IllegalArgumentException] {
+      division.against("unknown team", "Atlanta")
+    }
+    intercept[IllegalArgumentException] {
+      division.losses("unknown team")
+    }
+    intercept[IllegalArgumentException] {
+      division.certificateOfElimination("unknown team")
+    }
+    intercept[IllegalArgumentException] {
+      division.wins("unknown team")
+    }
+    intercept[IllegalArgumentException] {
+      division.isEliminated("unknown team")
+    }
+    intercept[IllegalArgumentException] {
+      division.remaining("unknown team")
+    }
   }
 
-  def printEliminatedTeams(fileName: String) {
-    val division = new BaseballElimination(fileName)
-
+  def printEliminatedTeams(division: BaseballElimination) {
     division.teams.foreach {
       case t if division.isEliminated(t) =>
         print(s"$t is eliminated by the subset R = { ")
