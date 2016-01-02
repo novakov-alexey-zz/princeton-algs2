@@ -17,6 +17,7 @@ import java.util.Set;
 public class BaseballElimination {
     private Map<String, Team> teams;
     private Team[] teamId;
+    private int maxWins = Integer.MIN_VALUE;
 
     // create a baseball division from given filename in format specified below
     public BaseballElimination(String filename) {
@@ -41,6 +42,9 @@ public class BaseballElimination {
                 team.g[j] = in.readInt();
                 team.remainingInDivision += team.g[j];
             }
+            if (team.w > maxWins) {
+                maxWins = team.w;
+            }
         }
 
         trivialElimination();
@@ -48,42 +52,41 @@ public class BaseballElimination {
     }
 
     private void nontrivialElimination() {
-        int otherTeams = numberOfTeams() - 1;
-        int gameCount = (int) ((Math.pow(otherTeams, 2) - (otherTeams)) / 2);
-        int vertices = 2 + gameCount + otherTeams;
-        int t = vertices - 1;
-
         for (Team team : teams.values()) {
-            if (team.eliminationCertificate != null && team.eliminationCertificate.size() < 2) continue;
-            FlowNetwork flow = new FlowNetwork(vertices);
-            int game = numberOfTeams();
-            boolean[] edgeToSink = new boolean[numberOfTeams()];
-            int maxWins = team.w + team.remainingInDivision;
+            if (team.eliminationCertificate != null && team.eliminationCertificate.size() > 0) continue;
 
-            for (int i = 0; i < numberOfTeams(); i++) {
-                for (int j = 0; j < numberOfTeams(); j++) {
-                    if (team.id != i && team.id != j && i < j) {
-                        int gameV = game++;
-                        flow.addEdge(new FlowEdge(0, gameV, teamId[i].g[j]));
-                        flow.addEdge(new FlowEdge(gameV, i, Double.POSITIVE_INFINITY));
-                        flow.addEdge(new FlowEdge(gameV, j, Double.POSITIVE_INFINITY));
-
-                        if (!edgeToSink[i]) {
-                            flow.addEdge(new FlowEdge(i, t, Math.max(0, maxWins - teamId[i].w)));
-                            edgeToSink[i] = true;
-                        }
-                        if (!edgeToSink[j]) {
-                            flow.addEdge(new FlowEdge(j, t, Math.max(0, maxWins - teamId[j].w)));
-                            edgeToSink[j] = true;
-                        }
-                    }
+            int n = numberOfTeams();
+            int source = n;
+            int sink = n + 1;
+            int gameNode = n + 2;
+            int currentMaxWins = team.w + team.remainingInDivision;
+            Set<FlowEdge> edges = new HashSet<>();
+            for (int i = 0; i < n; i++) {
+                if (i == team.id || teamId[i].w + teamId[i].remainingInDivision < maxWins) {
+                    continue;
                 }
+
+                for (int j = 0; j < i; j++) {
+                    if (j == team.id || teamId[i].g[j] == 0 || teamId[j].w + teamId[j].remainingInDivision < maxWins) {
+                        continue;
+                    }
+
+                    edges.add(new FlowEdge(source, gameNode, teamId[i].g[j]));
+                    edges.add(new FlowEdge(gameNode, i, Double.POSITIVE_INFINITY));
+                    edges.add(new FlowEdge(gameNode, j, Double.POSITIVE_INFINITY));
+                    gameNode++;
+                }
+                edges.add(new FlowEdge(i, sink, currentMaxWins - teamId[i].w));
             }
 
-            FordFulkerson ff = new FordFulkerson(flow, 0, t);
-            Set<String> certificate = new HashSet<>();
+            FlowNetwork network = new FlowNetwork(gameNode);
+            for (FlowEdge edge : edges) {
+                network.addEdge(edge);
+            }
+            FordFulkerson ff = new FordFulkerson(network, source, sink);
 
-            for (FlowEdge edge : flow.adj(0)) {
+            Set<String> certificate = new HashSet<>();
+            for (FlowEdge edge : network.adj(0)) {
                 if (edge.flow() < edge.capacity()) {
                     Arrays.stream(teamId)
                             .filter(v -> v.id != team.id)
@@ -102,12 +105,13 @@ public class BaseballElimination {
                     }
                 }
 
-                System.out.printf("Team: %s, totalWin = %d, totalRemaining = %d, team.w = %d, certificate = %s%n",
-                        team.name, totalWin, totalRemaining, team.w, certificate);
-
                 double a = (double) (totalWin + totalRemaining / 2) / certificate.size();
-                if (a >= maxWins)
+                if (a >= team.w + team.remainingInDivision)
                     team.eliminationCertificate = certificate;
+
+                System.out.printf(
+                        "Team: %s, totalWin = %d, totalRemaining = %d, team.w = %d, certificate = %s, a = %.2f, maxWins = %d%n",
+                        team.name, totalWin, totalRemaining, team.w, certificate, a, team.w + team.remainingInDivision);
             }
         }
     }
@@ -118,11 +122,8 @@ public class BaseballElimination {
 
             teams.keySet().stream()
                     .filter(aTeam -> !aTeam.equals(team.name))
-                    .forEach(anotherTeam -> {
-                        if (teams.get(anotherTeam).w > team.w + team.remainingInDivision)
-                            certificate.add(anotherTeam);
-                    });
-
+                    .filter(aTeam -> teams.get(aTeam).w > team.w + team.remainingInDivision)
+                    .forEach(certificate::add);
 
             if (!certificate.isEmpty())
                 team.eliminationCertificate = certificate;
