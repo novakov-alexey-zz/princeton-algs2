@@ -12,8 +12,7 @@ class BaseballEliminationTest extends FlatSpec with Matchers {
 
   def fixture = {
     new {
-      val fileName = "teams4.txt"
-      val division = new BaseballElimination(path(fileName))
+      val division = new BaseballElimination(path("teams4.txt"))
     }
   }
 
@@ -44,7 +43,7 @@ class BaseballEliminationTest extends FlatSpec with Matchers {
     //then
     printEliminatedTeams(division)
     division.isEliminated("Montreal") shouldBe true
-    division.certificateOfElimination("Montreal").toSet shouldBe Set("Atlanta", "New_York", "Philadelphia")
+    division.certificateOfElimination("Montreal").toSet shouldBe Set("Atlanta")
 
     division.isEliminated("Philadelphia") shouldBe true
     division.certificateOfElimination("Philadelphia").toSet shouldBe Set("Atlanta", "New_York")
@@ -52,15 +51,15 @@ class BaseballEliminationTest extends FlatSpec with Matchers {
 
   it should "eliminate Detroit in teams5.txt" in {
     //given-when
-    val division = new BaseballElimination(path("teams5.txt"))
+    val div = division("teams5.txt")
     //then
-    printEliminatedTeams(division)
-    division.isEliminated("Detroit") shouldBe true
+    div.isEliminated("Detroit") shouldBe true
     //then
     val otherTeams = Set("New_York", "Baltimore", "Boston", "Toronto")
-    division.certificateOfElimination("Detroit").toSet shouldBe otherTeams
+    div.certificateOfElimination("Detroit").toSet shouldBe otherTeams
 
-    otherTeams.foreach(t => division.isEliminated(t) shouldBe false)
+    otherTeams.foreach(t => div.isEliminated(t) shouldBe false)
+    otherTeams.foreach(t => div.certificateOfElimination(t) shouldBe null)
   }
 
   it should "trow exception when team is not from input file" in {
@@ -85,18 +84,88 @@ class BaseballEliminationTest extends FlatSpec with Matchers {
     }
   }
 
-  //TODO: add tests for other files. There is an issue with team list more than 24
-  /*
-    teams4a.txt: Ghaddafi.
-    teams5.txt: Detroit.
-    teams7.txt: Ireland.
-    teams24.txt: Team13.
-    teams32.txt: Team25, Team29.
-    teams36.txt: Team21.
-    teams42.txt: Team6, Team15, Team25.
-    teams48.txt: Team6, Team23, Team47.
-    teams54.txt: Team3, Team29, Team37, Team50.
-   */
+  it should "eliminate Ghaddafi and Bin_Ladin in teams4a.txt" in {
+    //given-when
+    val div = division("teams4a.txt")
+    //then
+    div.isEliminated("Ghaddafi") shouldBe true
+    div.isEliminated("Bin_Ladin") shouldBe true
+  }
+
+  it should "eliminate Ireland in teams7.txt" in {
+    //given-when
+    val div = division("teams7.txt")
+    //then
+    div.isEliminated("Ireland") shouldBe true
+  }
+
+  it should "eliminate Team13 in teams24.txt" in {
+    //given-when
+    val div = division("teams24.txt")
+    //then
+    printEliminatedTeams(div)
+    div.isEliminated("Team13") shouldBe true
+  }
+
+  it should "eliminate Team25, Team29 in teams32.txt" in {
+    //given-when
+    val div = division("teams32.txt")
+    //then
+    div.isEliminated("Team25") shouldBe true
+    div.isEliminated("Team29") shouldBe true
+  }
+
+  it should "eliminate Team21 in teams36.txt" in {
+    //given-when
+    val div = division("teams36.txt")
+    //then
+    printEliminatedTeams(div)
+    div.isEliminated("Team21") shouldBe true
+  }
+
+  it should "eliminate Team6, Team15, Team25 in teams42.txt" in {
+    //given-when
+    val div = division("teams42.txt")
+    //then
+    div.isEliminated("Team6") shouldBe true
+    div.isEliminated("Team15") shouldBe true
+    div.isEliminated("Team25") shouldBe true
+  }
+
+  it should "eliminate Team6, Team23, Team47 in teams48.txt" in {
+    //given-when
+    val div = division("teams48.txt")
+    //then
+    div.isEliminated("Team6") shouldBe true
+    div.isEliminated("Team23") shouldBe true
+    div.isEliminated("Team47") shouldBe true
+  }
+
+  it should "eliminate Team3, Team29, Team37, Team50 in teams54.txt" in {
+    //given-when
+    val div = division("teams54.txt")
+    //then
+    div.isEliminated("Team3") shouldBe true
+    div.isEliminated("Team29") shouldBe true
+    div.isEliminated("Team37") shouldBe true
+    div.isEliminated("Team50") shouldBe true
+  }
+
+  it should "not eliminate Indiana in teams10.txt" in {
+    //given-when
+    val div = division("teams10.txt")
+    //then
+    printEliminatedTeams(div)
+    div.isEliminated("Indiana") shouldBe false
+  }
+
+  it should "not eliminate Miami in teams29.txt" in {
+    //given-when
+    val div = division("teams29.txt")
+    //then
+    printEliminatedTeams(div)
+    div.isEliminated("Miami") shouldBe false
+  }
 
   def printEliminatedTeams(division: BaseballElimination) {
     division.teams.foreach {
@@ -104,9 +173,11 @@ class BaseballEliminationTest extends FlatSpec with Matchers {
         print(s"$t is eliminated by the subset R = { ")
         division.certificateOfElimination(t).foreach(et => print(s"$et "))
         println("}")
-      case t => println(s"$t is not eliminated")
+      case t => //println(s"$t is not eliminated")
     }
   }
+
+  def division(file: String) = new BaseballElimination(path(file))
 
   def path(file: String) = s"baseball/$file"
 }
