@@ -83,31 +83,32 @@ public class BaseballElimination {
             FordFulkerson ff = new FordFulkerson(flow, 0, t);
             Set<String> certificate = new HashSet<>();
 
-            Arrays.stream(teamId)
-                    .filter(v -> v.id != team.id)
-                    .filter(v -> ff.inCut(v.id))
-                    .forEach(v -> certificate.add(v.name));
-
-            int totalWin = certificate.stream().mapToInt(v -> teams.get(v).w).reduce(0, (a, b) -> a + b);
-
-            int totalRemaining = 0;
-            for (String certTeam : certificate) {
-                for (String anotherCertTeam : certificate) {
-                    totalRemaining += teams.get(certTeam).g[teams.get(anotherCertTeam).id];
+            for (FlowEdge edge : flow.adj(0)) {
+                if (edge.flow() < edge.capacity()) {
+                    Arrays.stream(teamId)
+                            .filter(v -> v.id != team.id)
+                            .filter(v -> ff.inCut(v.id))
+                            .forEach(v -> certificate.add(v.name));
                 }
             }
 
-            double value = ff.value();
-            if ( certificate.size() > 1) {
-                double a =  (double)(totalWin + totalRemaining / 2) / certificate.size();
-                if (Math.abs(a - maxWins) > 1E-6)
+            if (certificate.size() > 1) {
+                int totalWin = certificate.stream().mapToInt(v -> teams.get(v).w).reduce(0, (a, b) -> a + b);
+
+                int totalRemaining = 0;
+                for (String certTeam : certificate) {
+                    for (String anotherCertTeam : certificate) {
+                        totalRemaining += teams.get(certTeam).g[teams.get(anotherCertTeam).id];
+                    }
+                }
+
+                System.out.printf("Team: %s, totalWin = %d, totalRemaining = %d, team.w = %d, certificate = %s%n",
+                        team.name, totalWin, totalRemaining, team.w, certificate);
+
+                double a = (double) (totalWin + totalRemaining / 2) / certificate.size();
+                if (a >= maxWins)
                     team.eliminationCertificate = certificate;
             }
-
-//            System.out.print("Team: " + team.name + ", value = " + value);
-//            System.out.println(", totalWin = " + totalWin + ", totalRemaining = " + totalRemaining
-//                    + ", team.w = " + team.w + ", capacity = " + capacity + ", certificate = " + certificate);
-//            System.out.println(Math.abs(value - capacity) < 1E-6);
         }
     }
 
