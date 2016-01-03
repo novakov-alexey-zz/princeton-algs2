@@ -52,6 +52,7 @@ class BaseballEliminationTest extends FlatSpec with Matchers {
   it should "eliminate Detroit in teams5.txt" in {
     //given-when
     val div = division("teams5.txt")
+    printEliminatedTeams(div)
     //then
     div.isEliminated("Detroit") shouldBe true
     //then
@@ -165,6 +166,14 @@ class BaseballEliminationTest extends FlatSpec with Matchers {
     //then
     printEliminatedTeams(div)
     div.isEliminated("Miami") shouldBe false
+  }
+
+  it should "eliminate Team18 in teams30.txt" in {
+    //given-when
+    val div = division("teams30.txt")
+    //then
+    printEliminatedTeams(div)
+    div.isEliminated("Team18") shouldBe true
   }
 
   def printEliminatedTeams(division: BaseballElimination) {

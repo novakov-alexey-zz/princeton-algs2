@@ -17,7 +17,7 @@ import java.util.Set;
 public class BaseballElimination {
     private Map<String, Team> teams;
     private Team[] teamId;
-    private int maxWins = Integer.MIN_VALUE;
+    private int maxDivWins = Integer.MIN_VALUE;
 
     // create a baseball division from given filename in format specified below
     public BaseballElimination(String filename) {
@@ -40,10 +40,9 @@ public class BaseballElimination {
             team.g = new int[n];
             for (int j = 0; j < n; j++) {
                 team.g[j] = in.readInt();
-                team.remainingInDivision += team.g[j];
             }
-            if (team.w > maxWins) {
-                maxWins = team.w;
+            if (team.w > maxDivWins) {
+                maxDivWins = team.w;
             }
         }
 
@@ -51,25 +50,35 @@ public class BaseballElimination {
         nontrivialElimination();
     }
 
+    private void trivialElimination() {
+        for (Team team : teams.values()) {
+            Set<String> certificate = new HashSet<>();
+
+            teams.keySet().stream()
+                    .filter(aTeam -> !aTeam.equals(team.name))
+                    .filter(aTeam -> teams.get(aTeam).w > team.w + team.r)
+                    .forEach(certificate::add);
+
+            if (!certificate.isEmpty())
+                team.eliminationCertificate = certificate;
+        }
+    }
+
     private void nontrivialElimination() {
         for (Team team : teams.values()) {
             if (team.eliminationCertificate != null && team.eliminationCertificate.size() > 0) continue;
 
-            int n = numberOfTeams();
-            int source = n;
-            int sink = n + 1;
-            int gameNode = n + 2;
-            int currentMaxWins = team.w + team.remainingInDivision;
+            int source = numberOfTeams();
+            int sink = numberOfTeams() + 1;
+            int gameNode = numberOfTeams() + 2;
+            int currentMaxWins = team.w + team.r;
             Set<FlowEdge> edges = new HashSet<>();
-            for (int i = 0; i < n; i++) {
-                if (i == team.id || teamId[i].w + teamId[i].remainingInDivision < maxWins) {
-                    continue;
-                }
+
+            for (int i = 0; i < numberOfTeams(); i++) {
+                if (i == team.id || teamId[i].w + teamId[i].r < maxDivWins) continue;
 
                 for (int j = 0; j < i; j++) {
-                    if (j == team.id || teamId[i].g[j] == 0 || teamId[j].w + teamId[j].remainingInDivision < maxWins) {
-                        continue;
-                    }
+                    if (j == team.id || teamId[i].g[j] == 0 || teamId[j].w + teamId[j].r < maxDivWins) continue;
 
                     edges.add(new FlowEdge(source, gameNode, teamId[i].g[j]));
                     edges.add(new FlowEdge(gameNode, i, Double.POSITIVE_INFINITY));
@@ -80,53 +89,21 @@ public class BaseballElimination {
             }
 
             FlowNetwork network = new FlowNetwork(gameNode);
-            for (FlowEdge edge : edges) {
-                network.addEdge(edge);
-            }
+            edges.forEach(network::addEdge);
             FordFulkerson ff = new FordFulkerson(network, source, sink);
 
             Set<String> certificate = new HashSet<>();
-            for (FlowEdge edge : network.adj(0)) {
+            for (FlowEdge edge : network.adj(numberOfTeams())) {
                 if (edge.flow() < edge.capacity()) {
                     Arrays.stream(teamId)
-                            .filter(v -> v.id != team.id)
                             .filter(v -> ff.inCut(v.id))
                             .forEach(v -> certificate.add(v.name));
                 }
             }
 
-            if (certificate.size() > 1) {
-                int totalWin = certificate.stream().mapToInt(v -> teams.get(v).w).reduce(0, (a, b) -> a + b);
-
-                int totalRemaining = 0;
-                for (String certTeam : certificate) {
-                    for (String anotherCertTeam : certificate) {
-                        totalRemaining += teams.get(certTeam).g[teams.get(anotherCertTeam).id];
-                    }
-                }
-
-                double a = (double) (totalWin + totalRemaining / 2) / certificate.size();
-                if (a >= team.w + team.remainingInDivision)
-                    team.eliminationCertificate = certificate;
-
-                System.out.printf(
-                        "Team: %s, totalWin = %d, totalRemaining = %d, team.w = %d, certificate = %s, a = %.2f, maxWins = %d%n",
-                        team.name, totalWin, totalRemaining, team.w, certificate, a, team.w + team.remainingInDivision);
-            }
-        }
-    }
-
-    private void trivialElimination() {
-        for (Team team : teams.values()) {
-            Set<String> certificate = new HashSet<>();
-
-            teams.keySet().stream()
-                    .filter(aTeam -> !aTeam.equals(team.name))
-                    .filter(aTeam -> teams.get(aTeam).w > team.w + team.remainingInDivision)
-                    .forEach(certificate::add);
-
-            if (!certificate.isEmpty())
+            if (certificate.size() > 0) {
                 team.eliminationCertificate = certificate;
+            }
         }
     }
 
@@ -188,7 +165,6 @@ public class BaseballElimination {
         private int w;
         private int l;
         private int r;
-        private int remainingInDivision;
         private int[] g;
         private Set<String> eliminationCertificate;
     }
