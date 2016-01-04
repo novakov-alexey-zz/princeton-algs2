@@ -182,7 +182,7 @@ class BaseballEliminationTest extends FlatSpec with Matchers {
         print(s"$t is eliminated by the subset R = { ")
         division.certificateOfElimination(t).foreach(et => print(s"$et "))
         println("}")
-      case t => //println(s"$t is not eliminated")
+      case t => println(s"$t is not eliminated")
     }
   }
 
