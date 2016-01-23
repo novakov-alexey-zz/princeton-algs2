@@ -8,7 +8,7 @@ object MaxSubArraySolver {
     var currentSum = 0
     var maxSum = 0
     var left, right = 0
-    var maxI = 0
+    var maxI = 0 //used when all negatives in the array
 
     for (i <- a.indices) {
       val incSum = currentSum + a(i)
