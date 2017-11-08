@@ -26,7 +26,7 @@ object HomeWorkZipper extends App {
       zip.putNextEntry(new ZipEntry(file.getName))
       using(zip)(_.write(contentWithoutPackage.getBytes))
     }
-  } finally zip.close
+  } finally zip.close()
 
-  def using[A <: {def closeEntry() : Unit}, B](resource: A)(f: A => B): B = try f(resource) finally resource.closeEntry
+  def using[A <: {def closeEntry() : Unit}, B](resource: A)(f: A => B): B = try f(resource) finally resource.closeEntry()
 }
